@@ -1243,16 +1243,24 @@ function goCalc(k){
 }
 
 // ════════════════════════════════════════════════════════════
-//  TABS
+//  TABS — Navegación entre paneles principales
 // ════════════════════════════════════════════════════════════
 function showTab(tab){
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.topbar-tab').forEach(t=>t.classList.remove('active'));
   document.getElementById('panel-'+tab).classList.add('active');
-  const idx={calc:0,ref:1,formulas:2}[tab]||0;
-  document.querySelectorAll('.topbar-tab')[idx].classList.add('active');
-  const titles={calc:'Calculadora de Dosis',ref:'Referencia de Medicamentos',formulas:'Fórmulas de Cálculo'};
-  document.getElementById('topbarTitle').textContent=titles[tab];
+  // Mapeo de tab → índice del botón en el topbar
+  const idx={calc:0,admin:1,formulas:2}[tab];
+  if(idx!==undefined) document.querySelectorAll('.topbar-tab')[idx].classList.add('active');
+  const titles={
+    calc:'Calculadora de Dosis',
+    admin:'Administrar Medicamentos',
+    formulas:'Fórmulas de Cálculo',
+    form: editandoKey ? 'Editar medicamento' : 'Agregar medicamento'
+  };
+  document.getElementById('topbarTitle').textContent=titles[tab]||'DosisClínica';
+  // Renderizar lista admin cada vez que se abre
+  if(tab==='admin') renderAdminList();
 }
 
 // ════════════════════════════════════════════════════════════
@@ -1268,6 +1276,562 @@ function aH(type,icon,msg){
 }
 
 // ════════════════════════════════════════════════════════════
-//  START
+//  INIT — Punto de entrada de la aplicación
 // ════════════════════════════════════════════════════════════
+function init(){
+  cargarMedsCustom();   // Cargar medicamentos guardados en localStorage
+  renderSidebarNav();
+  renderAdminList();
+}
+
+
+// ════════════════════════════════════════════════════════════
+//  ADMINISTRAR — localStorage, lista, editar, eliminar, agregar
+// ════════════════════════════════════════════════════════════
+
+/* ── Clave de almacenamiento en localStorage ── */
+const LS_KEY = 'dosisclinica_custom_meds';
+
+/* ── Clave del medicamento siendo editado (null = modo agregar) ── */
+let editandoKey = null;
+
+/* ── Clave pendiente de eliminar ── */
+let eliminandoKey = null;
+
+/* ── Contador para IDs únicos de medicamentos nuevos ── */
+let customIdCounter = Date.now();
+
+/**
+ * Carga los medicamentos guardados en localStorage
+ * y los fusiona en el objeto MEDS global.
+ */
+function cargarMedsCustom() {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (!raw) return;
+    const customs = JSON.parse(raw);
+    Object.entries(customs).forEach(([key, med]) => {
+      MEDS[key] = med;
+      // Agregar a su categoría si no está
+      const cat = med.cat;
+      if (CATS[cat] && !CATS[cat].includes(key)) {
+        CATS[cat].push(key);
+      }
+    });
+  } catch(e) {
+    console.warn('Error cargando medicamentos custom:', e);
+  }
+}
+
+/**
+ * Guarda en localStorage solo los medicamentos que fueron
+ * creados o modificados por el usuario (los que tienen _custom:true).
+ */
+function guardarEnStorage() {
+  const customs = {};
+  Object.entries(MEDS).forEach(([key, med]) => {
+    if (med._custom) customs[key] = med;
+  });
+  localStorage.setItem(LS_KEY, JSON.stringify(customs));
+}
+
+/**
+ * Renderiza la lista completa de medicamentos en el panel Administrar.
+ * Cada fila tiene botón Editar y Eliminar.
+ */
+function renderAdminList(filter = '') {
+  const el = document.getElementById('adminList');
+  if (!el) return;
+  el.innerHTML = '';
+
+  const q = filter.trim().toLowerCase();
+  const allKeys = Object.values(CATS).flat();
+  const filtered = q
+    ? allKeys.filter(k => MEDS[k] && (
+        MEDS[k].name.toLowerCase().includes(q) ||
+        MEDS[k].desc.toLowerCase().includes(q)
+      ))
+    : allKeys;
+
+  // Actualizar subtítulo con conteo
+  const sub = document.getElementById('adminSubtitle');
+  if (sub) sub.textContent = `${allKeys.length} medicamentos · Edita, elimina o agrega nuevos`;
+
+  if (!filtered.length) {
+    el.innerHTML = '<div class="empty-state" style="padding:48px"><div class="empty-state-text">No se encontraron resultados</div></div>';
+    return;
+  }
+
+  filtered.forEach((key, idx) => {
+    const m = MEDS[key];
+    if (!m) return;
+    const row = document.createElement('div');
+    row.className = 'admin-med-row';
+
+    // Color del número de orden (rota por la paleta)
+    const colors = ['#0a3d2e','#185fa5','#534ab7','#854f0b','#7a2e12'];
+    const bgs    = ['#e1f5ee','#e6f1fb','#eeedfe','#faeeda','#faece7'];
+    const ci = idx % 5;
+
+    row.innerHTML = `
+      <div class="admin-med-num" style="background:${bgs[ci]};color:${colors[ci]}">${idx+1}</div>
+      <div class="admin-med-info">
+        <div class="admin-med-name">
+          ${m.name}
+          ${m._custom ? '<span style="font-size:9px;background:var(--green-50);color:var(--green-700);padding:2px 6px;border-radius:20px;font-weight:600;margin-left:6px;font-family:DM Mono,monospace">CUSTOM</span>' : ''}
+        </div>
+        <div class="admin-med-meta">${m.desc} · ${CAT_DISPLAY_NAMES[m.cat]||m.cat}</div>
+      </div>
+      <div class="admin-med-actions">
+        <button class="btn-edit" onclick="abrirFormulario('${key}')">
+          <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+          Editar
+        </button>
+        <button class="btn-delete" onclick="pedirEliminar('${key}')">
+          <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+          Eliminar
+        </button>
+      </div>`;
+    el.appendChild(row);
+  });
+}
+
+/** Filtra la lista admin en tiempo real */
+function filterAdmin(v) { renderAdminList(v); }
+
+// ── MODAL DE ELIMINACIÓN ──
+
+/**
+ * Muestra el modal de confirmación antes de eliminar.
+ */
+function pedirEliminar(key) {
+  eliminandoKey = key;
+  const m = MEDS[key];
+  document.getElementById('deleteModalMsg').textContent =
+    `¿Seguro que deseas eliminar "${m ? m.name : key}"? Esta acción no se puede deshacer.`;
+  document.getElementById('deleteModal').classList.add('visible');
+}
+
+function cerrarModal() {
+  eliminandoKey = null;
+  document.getElementById('deleteModal').classList.remove('visible');
+}
+
+/**
+ * Elimina el medicamento del objeto MEDS, de CATS,
+ * y del localStorage si era custom.
+ */
+function confirmarEliminar() {
+  if (!eliminandoKey) return;
+  const key = eliminandoKey;
+  const nombre = MEDS[key] ? MEDS[key].name : key;
+
+  // Quitar de CATS
+  Object.keys(CATS).forEach(cat => {
+    CATS[cat] = CATS[cat].filter(k => k !== key);
+  });
+
+  // Quitar de MEDS
+  delete MEDS[key];
+
+  // Actualizar localStorage
+  guardarEnStorage();
+
+  cerrarModal();
+  renderAdminList();
+  renderSidebarNav();
+  mostrarToast(`"${nombre}" eliminado correctamente`);
+}
+
+// ── FORMULARIO ──
+
+/**
+ * Abre el formulario de creación o edición.
+ * @param {string|null} key - key del med a editar, o null para crear nuevo
+ */
+function abrirFormulario(key) {
+  editandoKey = key;
+  limpiarFormulario();
+
+  if (key && MEDS[key]) {
+    // Modo edición: rellenar el formulario con los datos existentes
+    const m = MEDS[key];
+    document.getElementById('f-name').value   = m.name || '';
+    document.getElementById('f-cat').value    = m.cat  || '';
+    document.getElementById('f-desc').value   = m.desc || '';
+    document.getElementById('f-mech').value   = m.mech || '';
+    document.getElementById('f-ind').value    = m.ind  || '';
+
+    // Alertas
+    (m.alerts || []).forEach(a => {
+      const parts = a.split(':');
+      const tipo = parts[0];
+      const msg  = parts.slice(1).join(':');
+      agregarAlerta(tipo, msg);
+    });
+
+    // Vías
+    if (m.vias) {
+      const oral = m.vias.oral;
+      if (oral) {
+        document.getElementById('f-oral-freq').value = oral.freq || '';
+        const dn = oral.dosisNino || {};
+        document.getElementById('f-oral-nino-min').value = dn.min ?? '';
+        document.getElementById('f-oral-nino-max').value = dn.max ?? '';
+        if (dn.porDia) {
+          document.getElementById('f-oral-nino-pordia').value = 'si';
+          toggleTomasField('oral');
+          document.getElementById('f-oral-nino-tomas').value = dn.tomas || 3;
+        }
+        document.getElementById('f-oral-nino-maxdia').value = dn.maxDia || '';
+        const da = oral.dosisAdulto || {};
+        document.getElementById('f-oral-adulto-tipo').value = da.fixed ? 'fixed' : 'perkilo';
+        document.getElementById('f-oral-adulto-min').value = da.min ?? '';
+        document.getElementById('f-oral-adulto-max').value = da.max ?? '';
+        (oral.formatos || []).forEach(f => agregarFormato('oral', f));
+      }
+      const rectal = m.vias.rectal;
+      if (rectal) {
+        document.getElementById('f-rectal-freq').value = rectal.freq || '';
+        const dr = rectal.dosisNino || {};
+        document.getElementById('f-rectal-nino-min').value = dr.min ?? '';
+        document.getElementById('f-rectal-nino-max').value = dr.max ?? '';
+        const dar = rectal.dosisAdulto || {};
+        document.getElementById('f-rectal-adulto-min').value = dar.min ?? '';
+        document.getElementById('f-rectal-adulto-max').value = dar.max ?? '';
+        (rectal.formatos || []).forEach(f => agregarFormato('rectal', f));
+      }
+      const ev = m.vias.endovenosa;
+      if (ev) {
+        document.getElementById('f-ev-freq').value = ev.freq || '';
+        const de = ev.dosisNino || {};
+        document.getElementById('f-ev-nino-min').value = de.min ?? '';
+        document.getElementById('f-ev-nino-max').value = de.max ?? '';
+        const dae = ev.dosisAdulto || {};
+        document.getElementById('f-ev-adulto-min').value = dae.min ?? '';
+        document.getElementById('f-ev-adulto-max').value = dae.max ?? '';
+        (ev.formatos || []).forEach(f => agregarFormato('ev', f));
+      }
+    }
+    document.getElementById('formPanelTitle').textContent = 'Editar medicamento';
+  } else {
+    // Modo agregar: formulario vacío con una alerta y un formato por defecto
+    agregarAlerta();
+    agregarFormato('oral');
+    document.getElementById('formPanelTitle').textContent = 'Agregar medicamento';
+  }
+
+  showTab('form');
+}
+
+/** Limpia todos los campos del formulario */
+function limpiarFormulario() {
+  ['f-name','f-cat','f-desc','f-mech','f-ind',
+   'f-oral-freq','f-oral-nino-min','f-oral-nino-max',
+   'f-oral-nino-maxdia','f-oral-adulto-min','f-oral-adulto-max',
+   'f-rectal-freq','f-rectal-nino-min','f-rectal-nino-max',
+   'f-rectal-adulto-min','f-rectal-adulto-max',
+   'f-ev-freq','f-ev-nino-min','f-ev-nino-max',
+   'f-ev-adulto-min','f-ev-adulto-max'
+  ].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  document.getElementById('f-oral-nino-pordia').value = 'no';
+  document.getElementById('f-oral-adulto-tipo').value = 'fixed';
+  toggleTomasField('oral');
+  document.getElementById('alertsContainer').innerHTML   = '';
+  document.getElementById('oral-formatos-container').innerHTML  = '';
+  document.getElementById('rectal-formatos-container').innerHTML = '';
+  document.getElementById('ev-formatos-container').innerHTML    = '';
+}
+
+/** Muestra/oculta el campo de N° tomas según selección */
+function toggleTomasField(via) {
+  const sel   = document.getElementById(`f-${via}-nino-pordia`);
+  const group = document.getElementById(`f-${via}-tomas-group`);
+  if (!sel || !group) return;
+  group.style.display = sel.value === 'si' ? 'flex' : 'none';
+  group.style.flexDirection = 'column';
+  group.style.gap = '6px';
+}
+
+/** Agrega una fila de alerta al formulario */
+function agregarAlerta(tipo = 'warning', msg = '') {
+  const c = document.getElementById('alertsContainer');
+  const row = document.createElement('div');
+  row.className = 'dynamic-row';
+  row.innerHTML = `
+    <select class="form-select" style="max-width:130px;flex-shrink:0">
+      <option value="info"    ${tipo==='info'   ?'selected':''}>ℹ️ Info</option>
+      <option value="warning" ${tipo==='warning'?'selected':''}>⚠️ Advertencia</option>
+      <option value="danger"  ${tipo==='danger' ?'selected':''}>🚫 Peligro</option>
+    </select>
+    <input class="form-input" type="text" placeholder="Texto de la alerta..." value="${msg.replace(/"/g,'&quot;')}">
+    <button class="btn-remove-row" onclick="this.parentElement.remove()" title="Eliminar">×</button>`;
+  c.appendChild(row);
+}
+
+/**
+ * Agrega un bloque de formato al contenedor de la vía indicada.
+ * @param {string} via - 'oral' | 'rectal' | 'ev'
+ * @param {object|null} datos - datos a prerellenar (en modo edición)
+ */
+function agregarFormato(via, datos = null) {
+  const containerId = via === 'ev' ? 'ev-formatos-container' : `${via}-formatos-container`;
+  const c = document.getElementById(containerId);
+  if (!c) return;
+
+  const n = datos || {};
+  const block = document.createElement('div');
+  block.className = 'formato-block';
+
+  // Opciones de tag de formato
+  const tagOpts = Object.entries(TL).map(([v,l]) =>
+    `<option value="${v}" ${n.tag===v?'selected':''}>${l}</option>`
+  ).join('');
+
+  block.innerHTML = `
+    <div class="formato-block-title">
+      Formato
+      <button class="btn-remove-row" style="width:24px;height:24px;font-size:13px" onclick="this.closest('.formato-block').remove()" title="Eliminar">×</button>
+    </div>
+    <div class="form-row" style="margin-bottom:8px">
+      <div class="form-group">
+        <label class="form-label" style="font-weight:400">Nombre del formato</label>
+        <input class="form-input fmt-name" type="text" placeholder="Ej: Jarabe 120 mg/5ml" value="${n.name||''}">
+      </div>
+      <div class="form-group">
+        <label class="form-label" style="font-weight:400">Tipo</label>
+        <select class="form-select fmt-tag">${tagOpts}</select>
+      </div>
+    </div>
+    <div class="form-row" style="margin-bottom:8px">
+      <div class="form-group">
+        <label class="form-label" style="font-weight:400">Concentración (mg)</label>
+        <input class="form-input fmt-conc" type="number" placeholder="Ej: 120" step="0.001" value="${n.conc||''}">
+      </div>
+      <div class="form-group">
+        <label class="form-label" style="font-weight:400">Volumen por medida (ml)</label>
+        <input class="form-input fmt-per" type="number" placeholder="Ej: 5 (para 120mg/5ml)" step="0.1" value="${n.per||1}">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label" style="font-weight:400">Unidad de resultado</label>
+        <select class="form-select fmt-unit">
+          <option value="ml"          ${n.resUnit==='ml'          ?'selected':''}>ml</option>
+          <option value="comp"        ${n.resUnit==='comp'        ?'selected':''}>comprimidos</option>
+          <option value="cápsulas"    ${n.resUnit==='cápsulas'    ?'selected':''}>cápsulas</option>
+          <option value="supositorios"${n.resUnit==='supositorios'?'selected':''}>supositorios</option>
+          <option value="gotas"       ${n.resUnit==='gotas'       ?'selected':''}>gotas</option>
+          <option value="UI"          ${n.resUnit==='UI'          ?'selected':''}>UI</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label" style="font-weight:400">Factor gotas/ml (si aplica)</label>
+        <input class="form-input fmt-gtt" type="number" placeholder="Ej: 30" step="1" value="${n.gttFactor||''}">
+      </div>
+    </div>
+    <div class="form-group" style="margin-top:8px">
+      <label class="form-label" style="font-weight:400">Etiqueta/descripción</label>
+      <input class="form-input fmt-label" type="text" placeholder="Ej: 120 mg/5 ml · Kitadol" value="${n.label||''}">
+    </div>`;
+
+  c.appendChild(block);
+}
+
+/**
+ * Lee los formatos de un contenedor de vía y los devuelve como array.
+ */
+function leerFormatos(containerId) {
+  const c = document.getElementById(containerId);
+  if (!c) return [];
+  const formatos = [];
+  c.querySelectorAll('.formato-block').forEach(block => {
+    const conc    = parseFloat(block.querySelector('.fmt-conc')?.value);
+    const per     = parseFloat(block.querySelector('.fmt-per')?.value) || 1;
+    const name    = block.querySelector('.fmt-name')?.value.trim();
+    const tag     = block.querySelector('.fmt-tag')?.value;
+    const resUnit = block.querySelector('.fmt-unit')?.value;
+    const label   = block.querySelector('.fmt-label')?.value.trim();
+    const gtt     = parseFloat(block.querySelector('.fmt-gtt')?.value);
+    if (!name || !conc) return;
+    const f = { name, conc, per, resUnit, tag, label: label || name };
+    if (gtt) f.gttFactor = gtt;
+    formatos.push(f);
+  });
+  return formatos;
+}
+
+/**
+ * Lee y valida todos los campos del formulario,
+ * construye el objeto medicamento y lo guarda.
+ */
+function guardarMedicamento() {
+  // ── Validaciones básicas ──
+  const name = document.getElementById('f-name').value.trim();
+  const cat  = document.getElementById('f-cat').value;
+  const desc = document.getElementById('f-desc').value.trim();
+  const mech = document.getElementById('f-mech').value.trim();
+  const ind  = document.getElementById('f-ind').value.trim();
+
+  if (!name) { alert('El nombre del medicamento es obligatorio.'); return; }
+  if (!cat)  { alert('Debes seleccionar una categoría.'); return; }
+  if (!desc) { alert('La descripción corta es obligatoria.'); return; }
+  if (!mech) { alert('El mecanismo de acción es obligatorio.'); return; }
+  if (!ind)  { alert('La indicación clínica es obligatoria.'); return; }
+
+  // ── Alertas ──
+  const alerts = [];
+  document.getElementById('alertsContainer').querySelectorAll('.dynamic-row').forEach(row => {
+    const tipo = row.querySelector('select')?.value;
+    const msg  = row.querySelector('input')?.value.trim();
+    if (tipo && msg) alerts.push(`${tipo}:${msg}`);
+  });
+
+  // ── Vías ──
+  const vias = {};
+
+  // Vía oral (obligatoria si tiene formatos)
+  const oralFormatos = leerFormatos('oral-formatos-container');
+  const oralFreq = document.getElementById('f-oral-freq').value.trim();
+  const oralNinoMin = parseFloat(document.getElementById('f-oral-nino-min').value);
+  const oralNinoMax = parseFloat(document.getElementById('f-oral-nino-max').value);
+  if (oralFormatos.length > 0) {
+    const porDia = document.getElementById('f-oral-nino-pordia').value === 'si';
+    const dosisNino = { min: oralNinoMin||0, max: oralNinoMax||0 };
+    if (porDia) {
+      dosisNino.porDia = true;
+      dosisNino.tomas  = parseInt(document.getElementById('f-oral-nino-tomas')?.value)||3;
+    }
+    const maxDia = parseFloat(document.getElementById('f-oral-nino-maxdia').value);
+    if (maxDia) dosisNino.maxDia = maxDia;
+
+    const adultoTipo = document.getElementById('f-oral-adulto-tipo').value;
+    const adultoMin  = parseFloat(document.getElementById('f-oral-adulto-min').value)||0;
+    const adultoMax  = parseFloat(document.getElementById('f-oral-adulto-max').value)||0;
+    const dosisAdulto = adultoTipo === 'fixed'
+      ? { fixed: true, min: adultoMin, max: adultoMax }
+      : { min: adultoMin, max: adultoMax };
+
+    vias.oral = { freq: oralFreq, formatos: oralFormatos, dosisNino, dosisAdulto };
+  }
+
+  // Vía rectal (opcional)
+  const rectalFormatos = leerFormatos('rectal-formatos-container');
+  const rectalFreq = document.getElementById('f-rectal-freq').value.trim();
+  if (rectalFormatos.length > 0 || rectalFreq) {
+    vias.rectal = {
+      freq: rectalFreq,
+      formatos: rectalFormatos,
+      dosisNino: {
+        min: parseFloat(document.getElementById('f-rectal-nino-min').value)||0,
+        max: parseFloat(document.getElementById('f-rectal-nino-max').value)||0
+      },
+      dosisAdulto: {
+        min: parseFloat(document.getElementById('f-rectal-adulto-min').value)||0,
+        max: parseFloat(document.getElementById('f-rectal-adulto-max').value)||0
+      }
+    };
+  }
+
+  // Vía endovenosa (opcional)
+  const evFormatos = leerFormatos('ev-formatos-container');
+  const evFreq = document.getElementById('f-ev-freq').value.trim();
+  if (evFormatos.length > 0 || evFreq) {
+    vias.endovenosa = {
+      freq: evFreq,
+      formatos: evFormatos,
+      dosisNino: {
+        min: parseFloat(document.getElementById('f-ev-nino-min').value)||0,
+        max: parseFloat(document.getElementById('f-ev-nino-max').value)||0
+      },
+      dosisAdulto: {
+        fixed: true,
+        min: parseFloat(document.getElementById('f-ev-adulto-min').value)||0,
+        max: parseFloat(document.getElementById('f-ev-adulto-max').value)||0
+      }
+    };
+  }
+
+  if (Object.keys(vias).length === 0) {
+    alert('Debes agregar al menos una vía de administración con al menos un formato.');
+    return;
+  }
+
+  // ── Construir objeto medicamento ──
+  const med = {
+    cat, name, desc, mech, ind,
+    alerts,
+    vias,
+    _custom: true,       // Marca como medicamento personalizado
+    refAlerts: alerts.map(a => {
+      const [t, ...rest] = a.split(':');
+      return { t, m: rest.join(':') };
+    }),
+    refDosis: Object.entries(vias).map(([via, vd]) => ({
+      via: VL[via] || via,
+      nino:   `${vd.dosisNino?.min ?? '—'}–${vd.dosisNino?.max ?? '—'} mg/kg`,
+      adulto: `${vd.dosisAdulto?.min ?? '—'}–${vd.dosisAdulto?.max ?? '—'} mg`,
+      freq:   vd.freq || '—'
+    }))
+  };
+
+  // ── Determinar la key del medicamento ──
+  let key = editandoKey;
+  if (!key) {
+    // Generar key única a partir del nombre
+    key = 'custom_' + name
+      .toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]/g, '_')
+      .replace(/_+/g, '_')
+      .replace(/^_|_$/g, '')
+      + '_' + (++customIdCounter);
+  }
+
+  // ── Guardar en MEDS ──
+  const catCambiada = editandoKey && MEDS[editandoKey] && MEDS[editandoKey].cat !== cat;
+  if (catCambiada) {
+    // Si cambió de categoría, quitar de la categoría anterior
+    const catAnterior = MEDS[editandoKey].cat;
+    CATS[catAnterior] = CATS[catAnterior].filter(k => k !== key);
+  }
+  MEDS[key] = med;
+
+  // Agregar a CATS si es nuevo o cambió categoría
+  if (!editandoKey || catCambiada) {
+    if (CATS[cat] && !CATS[cat].includes(key)) {
+      CATS[cat].push(key);
+    }
+  }
+
+  // ── Persistir en localStorage ──
+  guardarEnStorage();
+
+  // ── Refrescar UI ──
+  renderSidebarNav();
+  editandoKey = null;
+  showTab('admin');
+  mostrarToast(`"${name}" guardado correctamente ✓`);
+}
+
+// ── TOAST ──
+
+let toastTimer = null;
+
+/**
+ * Muestra un mensaje flotante de confirmación por 3 segundos.
+ */
+function mostrarToast(msg) {
+  const t = document.getElementById('toast');
+  if (!t) return;
+  t.textContent = msg;
+  t.classList.add('visible');
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('visible'), 3000);
+}
+
+// ── Arrancar ──
 init();

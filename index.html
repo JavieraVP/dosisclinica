@@ -77,7 +77,7 @@
       <div class="topbar-title" id="topbarTitle">Calculadora de Dosis</div>
       <div class="topbar-tabs">
         <button class="topbar-tab active" onclick="showTab('calc')">Calculadora</button>
-        <button class="topbar-tab" onclick="showTab('ref')">Referencia</button>
+        <button class="topbar-tab" onclick="showTab('admin')">Administrar</button>
         <button class="topbar-tab" onclick="showTab('formulas')">Fórmulas</button>
       </div>
     </div>
@@ -194,36 +194,249 @@
 
 
       <!-- ══════════════════════════════════════════
-           PANEL: REFERENCIA
-           Fichas expandibles de todos los medicamentos
+           PANEL: ADMINISTRAR
+           Lista de todos los medicamentos con acciones editar/eliminar
+           + botón para agregar uno nuevo
       ══════════════════════════════════════════ -->
-      <div class="panel" id="panel-ref">
+      <div class="panel" id="panel-admin">
 
-        <div class="ref-hero">
-          <div class="ref-hero-title">Referencia de Medicamentos</div>
-          <div class="ref-hero-sub">37 medicamentos · Dosis pediátricas y adultos · Formatos verificados en Chile</div>
+        <!-- Hero con botón de agregar -->
+        <div class="ref-hero" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;">
+          <div>
+            <div class="ref-hero-title">Administrar Medicamentos</div>
+            <div class="ref-hero-sub" id="adminSubtitle">37 medicamentos · Edita, elimina o agrega nuevos</div>
+          </div>
+          <!-- Botón principal para agregar un medicamento nuevo -->
+          <button class="btn-add-med" onclick="abrirFormulario(null)">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+            Agregar medicamento
+          </button>
         </div>
 
-        <!-- Buscador de referencia — filtra las fichas en tiempo real -->
+        <!-- Buscador -->
         <div class="ref-search-bar">
           <svg class="ref-search-icon" viewBox="0 0 20 20" fill="none" stroke="#999" stroke-width="1.8" width="16" height="16">
-            <circle cx="9" cy="9" r="6"/>
-            <path d="M15 15l-3-3"/>
+            <circle cx="9" cy="9" r="6"/><path d="M15 15l-3-3"/>
           </svg>
-          <input
-            class="ref-search"
-            type="text"
-            id="refSearch"
-            placeholder="Buscar medicamento, indicación..."
-            oninput="filterRef(this.value)"
-          >
+          <input class="ref-search" type="text" id="adminSearch"
+            placeholder="Buscar medicamento..." oninput="filterAdmin(this.value)">
         </div>
 
-        <!-- Lista de fichas generada por renderRefList() en script.js -->
-        <div id="refList"></div>
+        <!-- Lista de medicamentos con botones de acción — generada por renderAdminList() -->
+        <div id="adminList"></div>
 
       </div>
-      <!-- /panel-ref -->
+      <!-- /panel-admin -->
+
+
+      <!-- ══════════════════════════════════════════
+           PANEL: FORMULARIO DE MEDICAMENTO
+           Se usa tanto para agregar como para editar
+      ══════════════════════════════════════════ -->
+      <div class="panel" id="panel-form">
+
+        <!-- Header del formulario con botón volver -->
+        <div class="form-panel-header">
+          <button class="btn-back" onclick="showTab('admin')">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+            Volver
+          </button>
+          <div>
+            <div class="form-panel-title" id="formPanelTitle">Agregar medicamento</div>
+            <div class="form-panel-sub">Completa todos los campos para que el medicamento funcione en la calculadora</div>
+          </div>
+        </div>
+
+        <!-- ── SECCIÓN 1: Datos básicos ── -->
+        <div class="card">
+          <div class="card-title">Datos básicos</div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Nombre del medicamento *</label>
+              <input class="form-input" type="text" id="f-name" placeholder="Ej: Ibuprofeno">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Categoría *</label>
+              <select class="form-select" id="f-cat">
+                <option value="">Seleccionar...</option>
+                <option value="analg">Analgésicos / AINE</option>
+                <option value="cort">Corticoides</option>
+                <option value="opio">Opioides / Analgesia potente</option>
+                <option value="atb">Antibióticos</option>
+                <option value="antiviral">Antivirales</option>
+                <option value="antifung">Antifúngicos</option>
+                <option value="gastro">Gastroprotectores / Otros</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group" style="margin-top:12px">
+            <label class="form-label">Descripción corta *</label>
+            <input class="form-input" type="text" id="f-desc" placeholder="Ej: AINE · Antiinflamatorio">
+          </div>
+          <div class="form-group" style="margin-top:12px">
+            <label class="form-label">Mecanismo de acción *</label>
+            <textarea class="form-input" id="f-mech" rows="2" placeholder="Ej: Inhibe COX-1 y COX-2 · Antiinflamatorio, analgésico y antipirético" style="resize:vertical"></textarea>
+          </div>
+          <div class="form-group" style="margin-top:12px">
+            <label class="form-label">Indicación clínica *</label>
+            <textarea class="form-input" id="f-ind" rows="2" placeholder="Ej: Dolor dental postoperatorio, inflamación..." style="resize:vertical"></textarea>
+          </div>
+        </div>
+
+        <!-- ── SECCIÓN 2: Alertas clínicas ── -->
+        <div class="card">
+          <div class="card-title">Alertas clínicas</div>
+          <div class="form-panel-sub" style="margin-bottom:14px;font-size:12px;color:var(--gray-500)">
+            Agrega las advertencias que debe ver el profesional. Cada alerta tiene un tipo y un mensaje.
+          </div>
+          <div id="alertsContainer"></div>
+          <button class="btn-add-row" onclick="agregarAlerta()">+ Agregar alerta</button>
+        </div>
+
+        <!-- ── SECCIÓN 3: Vía oral ── -->
+        <div class="card">
+          <div class="card-title">Vía oral</div>
+          <div class="form-group">
+            <label class="form-label">Frecuencia de administración</label>
+            <input class="form-input" type="text" id="f-oral-freq" placeholder="Ej: Cada 6–8 horas · Máx 3 días · Con alimentos">
+          </div>
+          <div style="margin-top:16px">
+            <div class="form-label" style="margin-bottom:8px">Dosis pediátrica (niño)</div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label" style="font-weight:400">Mín (mg/kg)</label>
+                <input class="form-input" type="number" id="f-oral-nino-min" placeholder="Ej: 5" step="0.1">
+              </div>
+              <div class="form-group">
+                <label class="form-label" style="font-weight:400">Máx (mg/kg)</label>
+                <input class="form-input" type="number" id="f-oral-nino-max" placeholder="Ej: 10" step="0.1">
+              </div>
+            </div>
+            <div class="form-row" style="margin-top:8px">
+              <div class="form-group">
+                <label class="form-label" style="font-weight:400">¿Es dosis por día? (÷ tomas)</label>
+                <select class="form-select" id="f-oral-nino-pordia" onchange="toggleTomasField('oral')">
+                  <option value="no">No — es por toma directa</option>
+                  <option value="si">Sí — dividir en tomas</option>
+                </select>
+              </div>
+              <div class="form-group" id="f-oral-tomas-group" style="display:none">
+                <label class="form-label" style="font-weight:400">N° de tomas al día</label>
+                <input class="form-input" type="number" id="f-oral-nino-tomas" placeholder="Ej: 3" step="1">
+              </div>
+            </div>
+            <div class="form-group" style="margin-top:8px">
+              <label class="form-label" style="font-weight:400">Dosis máxima diaria niño (mg) — opcional</label>
+              <input class="form-input" type="number" id="f-oral-nino-maxdia" placeholder="Ej: 2000">
+            </div>
+          </div>
+          <div style="margin-top:16px">
+            <div class="form-label" style="margin-bottom:8px">Dosis adulto</div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label" style="font-weight:400">Tipo de dosis adulto</label>
+                <select class="form-select" id="f-oral-adulto-tipo">
+                  <option value="fixed">Fija (no depende del peso)</option>
+                  <option value="perkilo">Por kg (igual que niño)</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label" style="font-weight:400">Mín (mg)</label>
+                <input class="form-input" type="number" id="f-oral-adulto-min" placeholder="Ej: 400" step="0.1">
+              </div>
+            </div>
+            <div class="form-group" style="margin-top:8px">
+              <label class="form-label" style="font-weight:400">Máx (mg)</label>
+              <input class="form-input" type="number" id="f-oral-adulto-max" placeholder="Ej: 600" step="0.1">
+            </div>
+          </div>
+          <!-- Formatos orales -->
+          <div style="margin-top:16px">
+            <div class="form-label" style="margin-bottom:8px">Formatos disponibles</div>
+            <div id="oral-formatos-container"></div>
+            <button class="btn-add-row" onclick="agregarFormato('oral')">+ Agregar formato oral</button>
+          </div>
+        </div>
+
+        <!-- ── SECCIÓN 4: Vía rectal (opcional) ── -->
+        <div class="card">
+          <div class="card-title">Vía rectal <span style="font-weight:400;color:var(--gray-400);font-size:10px">(opcional)</span></div>
+          <div class="form-group">
+            <label class="form-label">Frecuencia</label>
+            <input class="form-input" type="text" id="f-rectal-freq" placeholder="Ej: Cada 6–8 horas">
+          </div>
+          <div class="form-row" style="margin-top:10px">
+            <div class="form-group">
+              <label class="form-label">Dosis mín niño (mg/kg)</label>
+              <input class="form-input" type="number" id="f-rectal-nino-min" placeholder="Ej: 30" step="0.1">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Dosis máx niño (mg/kg)</label>
+              <input class="form-input" type="number" id="f-rectal-nino-max" placeholder="Ej: 40" step="0.1">
+            </div>
+          </div>
+          <div class="form-row" style="margin-top:8px">
+            <div class="form-group">
+              <label class="form-label">Dosis mín adulto (mg)</label>
+              <input class="form-input" type="number" id="f-rectal-adulto-min" placeholder="Ej: 250" step="0.1">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Dosis máx adulto (mg)</label>
+              <input class="form-input" type="number" id="f-rectal-adulto-max" placeholder="Ej: 500" step="0.1">
+            </div>
+          </div>
+          <div style="margin-top:12px">
+            <div class="form-label" style="margin-bottom:8px">Formatos</div>
+            <div id="rectal-formatos-container"></div>
+            <button class="btn-add-row" onclick="agregarFormato('rectal')">+ Agregar formato rectal</button>
+          </div>
+        </div>
+
+        <!-- ── SECCIÓN 5: Vía endovenosa (opcional) ── -->
+        <div class="card">
+          <div class="card-title">Vía endovenosa / IM <span style="font-weight:400;color:var(--gray-400);font-size:10px">(opcional)</span></div>
+          <div class="form-group">
+            <label class="form-label">Frecuencia</label>
+            <input class="form-input" type="text" id="f-ev-freq" placeholder="Ej: Cada 6–8 horas · IV lento">
+          </div>
+          <div class="form-row" style="margin-top:10px">
+            <div class="form-group">
+              <label class="form-label">Dosis mín niño (mg/kg)</label>
+              <input class="form-input" type="number" id="f-ev-nino-min" placeholder="Ej: 10" step="0.1">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Dosis máx niño (mg/kg)</label>
+              <input class="form-input" type="number" id="f-ev-nino-max" placeholder="Ej: 15" step="0.1">
+            </div>
+          </div>
+          <div class="form-row" style="margin-top:8px">
+            <div class="form-group">
+              <label class="form-label">Dosis mín adulto (mg)</label>
+              <input class="form-input" type="number" id="f-ev-adulto-min" placeholder="Ej: 500" step="0.1">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Dosis máx adulto (mg)</label>
+              <input class="form-input" type="number" id="f-ev-adulto-max" placeholder="Ej: 1000" step="0.1">
+            </div>
+          </div>
+          <div style="margin-top:12px">
+            <div class="form-label" style="margin-bottom:8px">Formatos</div>
+            <div id="ev-formatos-container"></div>
+            <button class="btn-add-row" onclick="agregarFormato('ev')">+ Agregar formato EV/IM</button>
+          </div>
+        </div>
+
+        <!-- ── BOTONES DE ACCIÓN FINALES ── -->
+        <div class="form-actions">
+          <button class="btn-cancel" onclick="showTab('admin')">Cancelar</button>
+          <button class="btn-save" onclick="guardarMedicamento()">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/></svg>
+            Guardar medicamento
+          </button>
+        </div>
+
+      </div>
+      <!-- /panel-form -->
 
 
       <!-- ══════════════════════════════════════════
@@ -320,6 +533,21 @@
 
 </div>
 <!-- /app-shell -->
+
+<!-- ── Modal de confirmación de eliminación ── -->
+<div class="modal-overlay" id="deleteModal">
+  <div class="modal-box">
+    <div class="modal-title">¿Eliminar medicamento?</div>
+    <div class="modal-msg" id="deleteModalMsg">Esta acción no se puede deshacer.</div>
+    <div class="modal-actions">
+      <button class="btn-modal-cancel" onclick="cerrarModal()">Cancelar</button>
+      <button class="btn-modal-confirm" onclick="confirmarEliminar()">Eliminar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Toast de confirmación ── -->
+<div class="toast" id="toast"></div>
 
 <!-- ── Lógica de la aplicación (cargado al final del body para que el DOM esté listo) ── -->
 <script src="script.js"></script>
