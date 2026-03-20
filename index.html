@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Calculadora de Dosis Clínica</title>
+
+  <!-- ── Fuentes externas (Google Fonts) ── -->
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <!-- ── Hoja de estilos principal ── -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════
+     APP SHELL — Contenedor principal (flex: sidebar + main)
+══════════════════════════════════════════════════ -->
+<div class="app-shell">
+
+  <!-- ══════════════════════════
+       SIDEBAR — Navegación lateral fija
+  ══════════════════════════ -->
+  <aside class="sidebar">
+
+    <!-- Logo y badge de verificación -->
+    <div class="sidebar-header">
+      <div class="sidebar-logo">
+        <div class="sidebar-logo-icon">
+          <svg viewBox="0 0 24 24">
+            <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 14l-5-5 1.41-1.41L12 14.17l7.59-7.59L21 8l-9 9z"/>
+          </svg>
+        </div>
+        <div>
+          <div class="sidebar-title">DosisClínica</div>
+          <div class="sidebar-subtitle">v1.0 · Chile</div>
+        </div>
+      </div>
+      <div class="sidebar-verified">
+        <div class="verified-dot"></div>
+        <div class="verified-text">Verificado en Salcobrand, Cruz Verde y Ahumada</div>
+      </div>
+    </div>
+
+    <!-- Buscador global de medicamentos -->
+    <div class="sidebar-search">
+      <div class="search-wrapper">
+        <svg class="search-icon" viewBox="0 0 20 20" fill="none" stroke="white" stroke-width="1.8" width="14" height="14">
+          <circle cx="9" cy="9" r="6"/>
+          <path d="M15 15l-3-3"/>
+        </svg>
+        <input
+          class="search-input"
+          type="text"
+          id="sidebarSearch"
+          placeholder="Buscar medicamento..."
+          oninput="filterSidebarNav(this.value)"
+        >
+      </div>
+    </div>
+
+    <!-- Menú acordeón de medicamentos — construido dinámicamente por renderSidebarNav() en script.js -->
+    <nav class="sidebar-nav" id="sidebarNav">
+    </nav>
+
+  </aside>
+  <!-- /sidebar -->
+
+
+  <!-- ══════════════════════════
+       MAIN — Área de contenido principal
+  ══════════════════════════ -->
+  <div class="main">
+
+    <!-- Barra superior con título y pestañas de navegación -->
+    <div class="topbar">
+      <div class="topbar-title" id="topbarTitle">Calculadora de Dosis</div>
+      <div class="topbar-tabs">
+        <button class="topbar-tab active" onclick="showTab('calc')">Calculadora</button>
+        <button class="topbar-tab" onclick="showTab('ref')">Referencia</button>
+        <button class="topbar-tab" onclick="showTab('formulas')">Fórmulas</button>
+      </div>
+    </div>
+
+    <!-- Área de contenido (máx 860px) -->
+    <div class="content-area">
+
+
+      <!-- ══════════════════════════════════════════
+           PANEL: CALCULADORA
+           Flujo principal: paciente → vía → formato → resultado
+      ══════════════════════════════════════════ -->
+      <div class="panel active" id="panel-calc">
+
+        <!-- Hero card: muestra el medicamento seleccionado y su mecanismo -->
+        <div class="calc-hero">
+          <div class="calc-hero-top">
+            <div>
+              <div class="calc-hero-title">Calculadora de Dosis</div>
+              <div class="calc-hero-sub">Selecciona un medicamento desde el panel izquierdo</div>
+            </div>
+            <!-- Badge con nombre del medicamento activo -->
+            <div class="selected-med-badge" id="selectedBadge">—</div>
+          </div>
+          <!-- Strip con nombre completo y mecanismo de acción (visible al seleccionar) -->
+          <div class="med-info-strip" id="medInfoStrip">
+            <div class="med-info-name" id="medInfoName"></div>
+            <div class="med-info-mech" id="medInfoMech"></div>
+          </div>
+        </div>
+
+        <!-- Card: datos del paciente (peso + tipo) -->
+        <div class="card">
+          <div class="card-title">Datos del paciente</div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Peso (kg)</label>
+              <input
+                class="form-input"
+                type="number"
+                id="peso"
+                placeholder="Ej: 20"
+                min="0.5"
+                max="300"
+                step="0.1"
+              >
+            </div>
+            <div class="form-group">
+              <label class="form-label">Tipo de paciente</label>
+              <!-- Botones toggle Niño / Adulto — controlados por selectTipo() en script.js -->
+              <div style="display:flex;gap:10px;margin-top:2px">
+                <button class="tipo-btn" id="tipo-nino" onclick="selectTipo('nino')">
+                  <div class="tipo-btn-name">Niño</div>
+                  <div class="tipo-btn-sub">Pediátrico</div>
+                </button>
+                <button class="tipo-btn" id="tipo-adulto" onclick="selectTipo('adulto')">
+                  <div class="tipo-btn-name">Adulto</div>
+                  <div class="tipo-btn-sub">&nbsp;</div>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card: vía de administración — botones generados por renderVias() en script.js -->
+        <div class="card">
+          <div class="card-title">Vía de administración</div>
+          <div class="via-grid" id="viaGrid">
+            <div class="empty-state">
+              <div class="empty-state-text">Selecciona un medicamento primero</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card: formato farmacéutico — botones generados por renderFormatos() en script.js -->
+        <div class="card">
+          <div class="card-title">Formato disponible</div>
+          <div class="fmt-grid" id="fmtGrid">
+            <div class="empty-state">
+              <div class="empty-state-text">Selecciona una vía primero</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Botón principal de cálculo — llama a calcular() en script.js -->
+        <button class="calc-btn" onclick="calcular()">Calcular dosis terapéutica</button>
+
+        <!-- Resultado del cálculo (oculto hasta calcular) -->
+        <div class="result-card" id="resultCard">
+          <div class="result-header">
+            <div class="result-header-title" id="resTitle">—</div>
+            <div class="result-header-sub" id="resSub">—</div>
+          </div>
+          <div class="result-body">
+            <!-- Bloques de dosis mínima y máxima — generados por calcular() -->
+            <div class="dose-row" id="doseRow"></div>
+            <!-- Alertas clínicas (danger / warning / info / ok) -->
+            <div id="alertZone"></div>
+            <!-- Frecuencia de administración -->
+            <div class="freq-block">
+              <div class="freq-label">Frecuencia de administración</div>
+              <div class="freq-value" id="resFreq">—</div>
+            </div>
+            <!-- Pasos del cálculo (regla de 3 explícita) -->
+            <div class="steps-section">
+              <div class="steps-title" id="stepsTitle">Pasos del cálculo</div>
+              <div id="stepsContainer"></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+      <!-- /panel-calc -->
+
+
+      <!-- ══════════════════════════════════════════
+           PANEL: REFERENCIA
+           Fichas expandibles de todos los medicamentos
+      ══════════════════════════════════════════ -->
+      <div class="panel" id="panel-ref">
+
+        <div class="ref-hero">
+          <div class="ref-hero-title">Referencia de Medicamentos</div>
+          <div class="ref-hero-sub">37 medicamentos · Dosis pediátricas y adultos · Formatos verificados en Chile</div>
+        </div>
+
+        <!-- Buscador de referencia — filtra las fichas en tiempo real -->
+        <div class="ref-search-bar">
+          <svg class="ref-search-icon" viewBox="0 0 20 20" fill="none" stroke="#999" stroke-width="1.8" width="16" height="16">
+            <circle cx="9" cy="9" r="6"/>
+            <path d="M15 15l-3-3"/>
+          </svg>
+          <input
+            class="ref-search"
+            type="text"
+            id="refSearch"
+            placeholder="Buscar medicamento, indicación..."
+            oninput="filterRef(this.value)"
+          >
+        </div>
+
+        <!-- Lista de fichas generada por renderRefList() en script.js -->
+        <div id="refList"></div>
+
+      </div>
+      <!-- /panel-ref -->
+
+
+      <!-- ══════════════════════════════════════════
+           PANEL: FÓRMULAS
+           Guía educativa de reglas de 3 y cálculos
+      ══════════════════════════════════════════ -->
+      <div class="panel" id="panel-formulas">
+
+        <div class="formula-hero">
+          <div class="formula-hero-title">Fórmulas de Cálculo</div>
+          <div class="formula-hero-sub">Reglas de 3 y conversiones para dosis clínicas</div>
+        </div>
+
+        <!-- Fórmula 1: dosis por toma -->
+        <div class="formula-card">
+          <div class="formula-card-title">📐 Fórmula general — dosis por toma</div>
+          <div class="formula-code">
+            Dosis mín (mg) = <span>Peso (kg) × dosis mín (mg/kg)</span><br>
+            Dosis máx (mg) = <span>Peso (kg) × dosis máx (mg/kg)</span>
+          </div>
+          <div class="formula-example">
+            <div class="formula-example-title">Ejemplo — Paracetamol 20 kg, jarabe 160 mg/5ml</div>
+            <div class="formula-example-step">Dosis mín = 20 kg × 10 mg/kg = 200 mg</div>
+            <div class="formula-example-step">Dosis máx = 20 kg × 15 mg/kg = 300 mg</div>
+          </div>
+        </div>
+
+        <!-- Fórmula 2: conversión a volumen -->
+        <div class="formula-card">
+          <div class="formula-card-title">🧪 Conversión a volumen (regla de 3)</div>
+          <div class="formula-code">
+            ml = <span>dosis (mg) × volumen formato (ml)</span> ÷ concentración (mg)
+          </div>
+          <div class="formula-example">
+            <div class="formula-example-title">Ejemplo — 200 mg en jarabe 160 mg/5ml</div>
+            <div class="formula-example-step">ml = 200 × 5 ÷ 160 = <strong>6,25 ml</strong></div>
+            <div class="formula-example-step">ml = 300 × 5 ÷ 160 = <strong>9,375 ml</strong></div>
+          </div>
+        </div>
+
+        <!-- Fórmula 3: conversión a gotas -->
+        <div class="formula-card">
+          <div class="formula-card-title">💧 Conversión a gotas</div>
+          <div class="formula-code">
+            gotas = <span>dosis (mg) × factor gotas/ml</span> ÷ concentración (mg/ml)
+          </div>
+          <div class="formula-example">
+            <div class="formula-example-title">Ejemplo — Paracetamol gotas 100 mg/ml (30 gtt/ml), 12 kg</div>
+            <div class="formula-example-step">Dosis = 12 × 10 = 120 mg</div>
+            <div class="formula-example-step">gotas = 120 × 30 ÷ 100 = <strong>36 gotas</strong></div>
+          </div>
+        </div>
+
+        <!-- Fórmula 4: dosis diaria dividida en tomas -->
+        <div class="formula-card">
+          <div class="formula-card-title">📅 Dosis diaria ÷ tomas (amoxicilina, metronidazol, etc.)</div>
+          <div class="formula-code">
+            Dosis diaria (mg) = <span>Peso × mg/kg/DÍA</span><br>
+            Dosis/toma&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; = <span>Dosis diaria ÷ N° de tomas</span><br>
+            ml/toma&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; = <span>Dosis/toma × vol. formato ÷ concentración</span>
+          </div>
+          <div class="formula-example">
+            <div class="formula-example-title">Ejemplo — Amoxicilina 20 kg, suspensión 500 mg/5ml, cada 8h</div>
+            <div class="formula-example-step">Dosis mín/día = 20 × 50 = 1000 mg/día → ÷3 = 333 mg/toma</div>
+            <div class="formula-example-step">Dosis máx/día = 20 × 80 = 1600 mg/día → ÷3 = 533 mg/toma</div>
+            <div class="formula-example-step">ml mín = 333 × 5 ÷ 500 = <strong>3,33 ml</strong></div>
+            <div class="formula-example-step">ml máx = 533 × 5 ÷ 500 = <strong>5,33 ml</strong></div>
+          </div>
+        </div>
+
+        <!-- Fórmula 5: unidades internacionales -->
+        <div class="formula-card">
+          <div class="formula-card-title">💉 Unidades internacionales (Penicilina G)</div>
+          <div class="formula-code">
+            UI/día&nbsp;&nbsp;&nbsp; = <span>Peso (kg) × UI/kg/día</span><br>
+            UI/toma&nbsp;&nbsp; = <span>UI/día ÷ N° tomas</span><br>
+            ampollas = <span>UI/toma ÷ UI/ampolla</span>
+          </div>
+          <div class="formula-example">
+            <div class="formula-example-title">Ejemplo — Penicilina G 20 kg, ampolla 1.000.000 UI, c/6h</div>
+            <div class="formula-example-step">UI/día mín = 20 × 50.000 = 1.000.000 UI → ÷4 = 250.000 UI/toma</div>
+            <div class="formula-example-step">UI/día máx = 20 × 200.000 = 4.000.000 UI → ÷4 = 1.000.000 UI/toma</div>
+          </div>
+        </div>
+
+      </div>
+      <!-- /panel-formulas -->
+
+
+    </div>
+    <!-- /content-area -->
+  </div>
+  <!-- /main -->
+
+</div>
+<!-- /app-shell -->
+
+<!-- ── Lógica de la aplicación (cargado al final del body para que el DOM esté listo) ── -->
+<script src="script.js"></script>
+
+</body>
+</html>

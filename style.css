@@ -1,0 +1,1204 @@
+/* ============================================================
+   DosisClínica — style.css
+   Hoja de estilos principal
+   Organización:
+     1. Design Tokens (variables CSS)
+     2. Reset & Base
+     3. Layout (shell, sidebar, main)
+     4. Sidebar (header, logo, search, verified)
+     5. Acordeón de navegación
+     6. Topbar
+     7. Paneles y área de contenido
+     8. Hero cards
+     9. Cards genéricas
+    10. Formulario (inputs, labels)
+    11. Botones de selección (vía, formato, tipo paciente)
+    12. Botón principal de cálculo
+    13. Panel de resultado (dosis, alertas, pasos)
+    14. Tags de formato farmacéutico
+    15. Panel de referencia
+    16. Panel de fórmulas
+    17. Utilidades (empty state, pills, scrollbar)
+    18. Responsive (móvil ≤ 768px)
+============================================================ */
+
+
+/* ============================================================
+   1. DESIGN TOKENS — Variables CSS globales
+   Paleta cromática semántica: verde (marca), azul (mínimo/info),
+   púrpura (máximo/formato), ámbar (advertencia), rojo (peligro)
+============================================================ */
+:root {
+  /* Verde — color institucional y de marca */
+  --green-900: #0a3d2e;   /* sidebar, heroes, botón principal */
+  --green-800: #0f5c43;   /* texto activo sobre verde */
+  --green-700: #0f6e56;   /* logo icon bg, hover botón */
+  --green-600: #1a8a6e;   /* focus ring inputs */
+  --green-400: #3ab88f;   /* acentos y subtítulos sobre verde */
+  --green-200: #9fe1cb;   /* íconos sidebar */
+  --green-100: #c8eedd;   /* nombre medicamento activo */
+  --green-50:  #e1f5ee;   /* fondos seleccionados verdes */
+
+  /* Azul — dosis mínima, vía seleccionada, alertas info */
+  --blue-700:  #0c447c;
+  --blue-500:  #185fa5;
+  --blue-300:  #85b7eb;
+  --blue-100:  #b5d4f4;
+  --blue-50:   #e6f1fb;
+
+  /* Púrpura — dosis máxima, formato seleccionado */
+  --purple-700: #3c3489;
+  --purple-500: #534ab7;
+  --purple-100: #cecbf6;
+  --purple-50:  #eeedfe;
+
+  /* Ámbar — alertas warning */
+  --amber-700: #633806;
+  --amber-500: #854f0b;
+  --amber-300: #ef9f27;
+  --amber-100: #fac775;
+  --amber-50:  #faeeda;
+
+  /* Rojo — alertas danger, contraindicaciones */
+  --red-700:   #791f1f;
+  --red-500:   #a32d2d;
+  --red-300:   #f09595;
+  --red-100:   #f7c1c1;
+  --red-50:    #fcebeb;
+
+  /* Grises — estructura y texto */
+  --gray-900:  #1a1a1a;   /* texto principal */
+  --gray-700:  #3a3a3a;
+  --gray-500:  #6b6b6b;   /* texto secundario */
+  --gray-300:  #b0b0b0;
+  --gray-100:  #e8e8e8;   /* borders en reposo */
+  --gray-50:   #f5f5f5;   /* fondos en reposo */
+  --white:     #ffffff;
+
+  /* Border radius */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+
+  /* Sombras */
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.10);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,0.14);
+}
+
+
+/* ============================================================
+   2. RESET & BASE
+============================================================ */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: #f0f4f1;          /* verde muy suave — fondo de página */
+  color: var(--gray-900);
+  min-height: 100vh;
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+
+/* ============================================================
+   3. LAYOUT — Estructura principal de dos columnas
+============================================================ */
+
+/* Contenedor raíz: sidebar fijo + área principal */
+.app-shell {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* Sidebar: columna izquierda fija */
+.sidebar {
+  width: 300px;
+  flex-shrink: 0;
+  background: var(--green-900);
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  top: 0; left: 0; bottom: 0;
+  overflow-y: auto;
+  z-index: 100;
+}
+
+/* Área principal: ocupa el espacio restante */
+.main {
+  margin-left: 300px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* Área de contenido con máximo ancho */
+.content-area {
+  flex: 1;
+  padding: 32px 40px;
+  max-width: 860px;
+}
+
+
+/* ============================================================
+   4. SIDEBAR — Header, logo, search y badge de verificación
+============================================================ */
+.sidebar-header {
+  padding: 28px 24px 20px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+
+.sidebar-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.sidebar-logo-icon {
+  width: 36px;
+  height: 36px;
+  background: var(--green-700);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.sidebar-logo-icon svg { width: 20px; height: 20px; fill: var(--green-200); }
+
+.sidebar-title {
+  color: #e8f5ee;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.2px;
+}
+
+.sidebar-subtitle {
+  color: var(--green-400);
+  font-size: 11px;
+  font-family: 'DM Mono', monospace;
+}
+
+/* Badge "Verificado en farmacias chilenas" */
+.sidebar-verified {
+  margin: 16px 24px 0;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: var(--radius-md);
+  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.verified-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--green-400);
+  flex-shrink: 0;
+}
+.verified-text { font-size: 10px; color: var(--green-200); line-height: 1.4; }
+
+/* Buscador global de medicamentos */
+.sidebar-search { padding: 16px 20px 8px; }
+
+.search-wrapper { position: relative; }
+
+.search-icon {
+  position: absolute;
+  left: 11px; top: 50%;
+  transform: translateY(-50%);
+  width: 14px; height: 14px;
+  opacity: 0.4;
+}
+
+.search-input {
+  width: 100%;
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: var(--radius-md);
+  padding: 9px 12px 9px 36px;
+  color: #e8f5ee;
+  font-size: 13px;
+  font-family: 'DM Sans', sans-serif;
+  outline: none;
+}
+.search-input::placeholder { color: rgba(255,255,255,0.3); }
+.search-input:focus {
+  border-color: var(--green-400);
+  background: rgba(255,255,255,0.1);
+}
+
+
+/* ============================================================
+   5. ACORDEÓN DE NAVEGACIÓN
+   Grupos plegables de medicamentos por categoría.
+   Animación via max-height + cubic-bezier.
+============================================================ */
+.sidebar-nav { padding: 10px 0 28px; flex: 1; }
+
+/* Divisor entre grupos */
+.acc-group { border-bottom: 1px solid rgba(255,255,255,0.06); }
+.acc-group:last-child { border-bottom: none; }
+
+/* Botón-header de cada categoría */
+.acc-trigger {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 11px 18px 11px 20px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s;
+}
+.acc-trigger:hover { background: rgba(255,255,255,0.06); }
+.acc-trigger.open  { background: rgba(255,255,255,0.08); }
+
+/* Ícono circular de categoría */
+.acc-icon {
+  width: 32px; height: 32px;
+  border-radius: 9px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.acc-icon svg { width: 16px; height: 16px; }
+
+/* Colores de íconos por categoría */
+.acc-icon-analg { background: rgba(59,184,143,0.18); }
+.acc-icon-analg svg { fill: var(--green-200); }
+.acc-icon-atb   { background: rgba(83,74,183,0.2); }
+.acc-icon-atb   svg { fill: #cecbf6; }
+.acc-icon-otros { background: rgba(239,159,39,0.18); }
+.acc-icon-otros svg { fill: #fac775; }
+
+/* Texto de la categoría */
+.acc-label-wrap { flex: 1; min-width: 0; }
+.acc-label-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255,255,255,0.85);
+  line-height: 1.2;
+  font-family: 'DM Sans', sans-serif;
+}
+.acc-trigger.open .acc-label-title { color: #e8f5ee; }
+.acc-label-count {
+  font-size: 10px;
+  color: rgba(255,255,255,0.35);
+  font-family: 'DM Mono', monospace;
+  margin-top: 1px;
+}
+
+/* Flecha que rota al abrir */
+.acc-arrow {
+  width: 18px; height: 18px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.25s cubic-bezier(0.4,0,0.2,1);
+}
+.acc-arrow svg {
+  width: 12px; height: 12px;
+  stroke: rgba(255,255,255,0.35);
+  fill: none;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.acc-trigger.open .acc-arrow { transform: rotate(180deg); }
+.acc-trigger.open .acc-arrow svg { stroke: var(--green-400); }
+
+/* Panel deslizable — animado con max-height */
+.acc-panel {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s cubic-bezier(0.4,0,0.2,1);
+}
+.acc-panel.open { max-height: 800px; }
+
+/* Item individual de medicamento dentro del panel */
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 18px 8px 52px;
+  cursor: pointer;
+  transition: background 0.12s;
+  position: relative;
+}
+.nav-item:hover { background: rgba(255,255,255,0.06); }
+.nav-item.active { background: rgba(255,255,255,0.1); }
+
+/* Barra verde izquierda en el item activo */
+.nav-item.active::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 50%;
+  transform: translateY(-50%);
+  width: 3px; height: 18px;
+  background: var(--green-400);
+  border-radius: 0 3px 3px 0;
+}
+
+.nav-item-text {
+  font-size: 13px;
+  font-weight: 400;
+  color: rgba(255,255,255,0.65);
+  line-height: 1.2;
+}
+.nav-item.active .nav-item-text { color: #e8f5ee; font-weight: 500; }
+.nav-item-sub { font-size: 10px; color: rgba(255,255,255,0.3); }
+
+/* Modo búsqueda: lista plana sin acordeón */
+.search-result-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 9px 18px 9px 20px;
+  cursor: pointer;
+  transition: background 0.12s;
+  position: relative;
+}
+.search-result-item:hover { background: rgba(255,255,255,0.06); }
+.search-result-item.active { background: rgba(255,255,255,0.1); }
+.search-result-item.active::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 50%;
+  transform: translateY(-50%);
+  width: 3px; height: 18px;
+  background: var(--green-400);
+  border-radius: 0 3px 3px 0;
+}
+
+/* Puntos de color por categoría en modo búsqueda */
+.sri-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-left: 4px;
+}
+.sri-analg { background: var(--green-400); }
+.sri-atb   { background: #a99ff5; }
+.sri-otros { background: #fac775; }
+
+/* Colores de categoría (usados en badges del grid) */
+.cat-analg { background: rgba(59,184,143,0.2); color: var(--green-200); }
+.cat-atb   { background: rgba(83,74,183,0.2);  color: #cecbf6; }
+.cat-otros { background: rgba(239,159,39,0.2); color: #fac775; }
+
+
+/* ============================================================
+   6. TOPBAR — Barra superior sticky con pestañas de navegación
+============================================================ */
+.topbar {
+  background: var(--white);
+  border-bottom: 1px solid var(--gray-100);
+  padding: 16px 40px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+
+.topbar-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--gray-900);
+}
+
+.topbar-tabs { display: flex; gap: 4px; }
+
+.topbar-tab {
+  padding: 7px 16px;
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  color: var(--gray-500);
+  transition: all 0.15s;
+  font-family: 'DM Sans', sans-serif;
+}
+.topbar-tab:hover  { background: var(--gray-50); color: var(--gray-900); }
+.topbar-tab.active { background: var(--green-900); color: #e8f5ee; }
+
+
+/* ============================================================
+   7. PANELES — Visibilidad controlada por showTab() en script.js
+============================================================ */
+.panel { display: none; }
+.panel.active { display: block; }
+
+
+/* ============================================================
+   8. HERO CARDS — Banner verde oscuro al tope de cada panel
+============================================================ */
+
+/* Hero de la calculadora */
+.calc-hero {
+  background: var(--green-900);
+  border-radius: var(--radius-xl);
+  padding: 28px 32px;
+  margin-bottom: 24px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Círculo decorativo de fondo */
+.calc-hero::after {
+  content: '';
+  position: absolute;
+  top: -40px; right: -40px;
+  width: 200px; height: 200px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.03);
+  pointer-events: none;
+}
+
+.calc-hero-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.calc-hero-title {
+  color: #e8f5ee;
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.4px;
+}
+
+.calc-hero-sub {
+  color: var(--green-400);
+  font-size: 13px;
+  margin-top: 4px;
+}
+
+/* Badge con nombre del medicamento seleccionado */
+.selected-med-badge {
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: var(--radius-md);
+  padding: 6px 12px;
+  color: var(--green-200);
+  font-size: 12px;
+  font-family: 'DM Mono', monospace;
+  display: none;
+}
+.selected-med-badge.visible { display: block; }
+
+/* Strip con mecanismo de acción (se muestra al seleccionar medicamento) */
+.med-info-strip {
+  margin-top: 20px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  display: none;
+}
+.med-info-strip.visible { display: block; }
+.med-info-name { color: var(--green-100); font-size: 15px; font-weight: 600; }
+.med-info-mech { color: var(--green-400); font-size: 12px; margin-top: 3px; }
+
+/* Heroes de referencia y fórmulas */
+.ref-hero,
+.formula-hero {
+  background: var(--green-900);
+  border-radius: var(--radius-xl);
+  padding: 28px 32px;
+  margin-bottom: 24px;
+}
+.ref-hero-title,
+.formula-hero-title {
+  color: #e8f5ee;
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.4px;
+}
+.ref-hero-sub,
+.formula-hero-sub {
+  color: var(--green-400);
+  font-size: 13px;
+  margin-top: 6px;
+}
+
+
+/* ============================================================
+   9. CARDS GENÉRICAS — Contenedores blancos con sombra suave
+============================================================ */
+.card {
+  background: var(--white);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  margin-bottom: 16px;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid rgba(0,0,0,0.04);
+}
+
+/* Título de sección dentro de una card */
+.card-title {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--gray-400, #999);
+  margin-bottom: 14px;
+}
+
+/* Label de categoría dentro de grids */
+.cat-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--gray-400, #aaa);
+  margin: 16px 0 8px;
+}
+.cat-label:first-child { margin-top: 0; }
+
+
+/* ============================================================
+   10. FORMULARIO — Inputs de datos del paciente
+============================================================ */
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--gray-600, #555);
+  letter-spacing: 0.02em;
+}
+
+.form-input,
+.form-select {
+  border: 1.5px solid var(--gray-100);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  font-size: 14px;
+  font-family: 'DM Sans', sans-serif;
+  color: var(--gray-900);
+  background: var(--gray-50);
+  outline: none;
+  transition: all 0.15s;
+  width: 100%;
+}
+.form-input:focus,
+.form-select:focus {
+  border-color: var(--green-600);
+  background: var(--white);
+  box-shadow: 0 0 0 3px rgba(26,138,110,0.1);
+}
+
+/* Ocultar flechas nativas del input numérico */
+.form-input[type=number]::-webkit-inner-spin-button,
+.form-input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
+.form-input[type=number] { -moz-appearance: textfield; }
+
+
+/* ============================================================
+   11. BOTONES DE SELECCIÓN
+   Todos comparten el patrón: reposo gris → hover color → activo border + glow
+============================================================ */
+
+/* Grid de vías de administración */
+.via-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 8px;
+}
+
+.via-btn {
+  border: 1.5px solid var(--gray-100);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  background: var(--gray-50);
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.15s;
+}
+.via-btn:hover { border-color: var(--blue-300); background: var(--blue-50); }
+.via-btn.selected {
+  border-color: var(--blue-500);
+  background: var(--blue-50);
+  box-shadow: 0 0 0 3px rgba(24,95,165,0.12);
+}
+.via-name { font-size: 13px; font-weight: 600; color: var(--gray-900); }
+.via-btn.selected .via-name { color: var(--blue-700); }
+.via-sub { font-size: 10px; color: var(--gray-400, #aaa); margin-top: 2px; }
+
+/* Grid de formatos farmacéuticos */
+.fmt-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 8px;
+}
+
+.fmt-btn {
+  border: 1.5px solid var(--gray-100);
+  border-radius: var(--radius-md);
+  padding: 11px 13px;
+  background: var(--gray-50);
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.15s;
+}
+.fmt-btn:hover { border-color: var(--purple-100); background: var(--purple-50); }
+.fmt-btn.selected {
+  border-color: var(--purple-500);
+  background: var(--purple-50);
+  box-shadow: 0 0 0 3px rgba(83,74,183,0.12);
+}
+.fmt-name { font-size: 13px; font-weight: 600; color: var(--gray-900); }
+.fmt-btn.selected .fmt-name { color: var(--purple-700); }
+.fmt-conc { font-size: 11px; color: var(--gray-500); margin-top: 2px; line-height: 1.4; }
+
+/* Botones Niño / Adulto */
+.tipo-btn {
+  flex: 1;
+  border: 1.5px solid var(--gray-100);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  background: var(--gray-50);
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.15s;
+  font-family: 'DM Sans', sans-serif;
+}
+.tipo-btn:hover { border-color: var(--green-400); background: var(--green-50); }
+.tipo-btn.selected {
+  border: 1.5px solid var(--green-700);
+  background: var(--green-50);
+  box-shadow: 0 0 0 3px rgba(15,110,86,0.12);
+}
+.tipo-btn-name { font-size: 14px; font-weight: 600; color: var(--gray-900); }
+.tipo-btn.selected .tipo-btn-name { color: var(--green-800); }
+.tipo-btn-sub { font-size: 11px; color: var(--gray-400, #aaa); margin-top: 1px; }
+
+/* Grid de medicamentos (usado en calc grid) */
+.med-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(155px, 1fr));
+  gap: 8px;
+}
+.med-btn {
+  border: 1.5px solid var(--gray-100);
+  border-radius: var(--radius-md);
+  padding: 11px 13px;
+  background: var(--gray-50);
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.15s;
+}
+.med-btn:hover {
+  border-color: var(--green-400);
+  background: var(--green-50);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+.med-btn.selected {
+  border-color: var(--green-700);
+  background: var(--green-50);
+  box-shadow: 0 0 0 3px rgba(15,110,86,0.12);
+}
+.med-btn-name { font-size: 13px; font-weight: 600; color: var(--gray-900); }
+.med-btn.selected .med-btn-name { color: var(--green-800); }
+.med-btn-desc { font-size: 11px; color: var(--gray-500); margin-top: 2px; }
+
+
+/* ============================================================
+   12. BOTÓN PRINCIPAL — "Calcular dosis terapéutica"
+============================================================ */
+.calc-btn {
+  width: 100%;
+  padding: 14px;
+  background: var(--green-900);
+  color: #e8f5ee;
+  border: none;
+  border-radius: var(--radius-lg);
+  font-size: 15px;
+  font-weight: 600;
+  font-family: 'DM Sans', sans-serif;
+  cursor: pointer;
+  transition: all 0.2s;
+  letter-spacing: -0.2px;
+  margin-top: 4px;
+}
+.calc-btn:hover {
+  background: var(--green-700);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+.calc-btn:active { transform: translateY(0); }
+
+
+/* ============================================================
+   13. PANEL DE RESULTADO
+   Muestra dosis mín/máx, alertas clínicas y pasos del cálculo
+============================================================ */
+
+/* Contenedor del resultado (oculto hasta calcular) */
+.result-card {
+  display: none;
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  box-shadow: var(--shadow-lg);
+  margin-top: 24px;
+  border: 1px solid rgba(0,0,0,0.06);
+}
+.result-card.visible { display: block; }
+
+/* Header verde con nombre del medicamento y resumen */
+.result-header {
+  background: var(--green-900);
+  padding: 20px 28px;
+}
+.result-header-title {
+  color: #e8f5ee;
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.3px;
+}
+.result-header-sub {
+  color: var(--green-400);
+  font-size: 12px;
+  margin-top: 4px;
+  font-family: 'DM Mono', monospace;
+}
+
+.result-body { background: var(--white); padding: 24px 28px; }
+
+/* Bloques de dosis mínima y máxima (en grid 2 columnas) */
+.dose-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.dose-block { border-radius: var(--radius-lg); padding: 16px; }
+
+/* Dosis mínima — azul */
+.dose-block.min { background: var(--blue-50); border: 1.5px solid var(--blue-100); }
+/* Dosis máxima — púrpura */
+.dose-block.max { background: var(--purple-50); border: 1.5px solid var(--purple-100); }
+/* Dosis única — verde (cuando min == max) */
+.dose-block.single {
+  background: var(--green-50);
+  border: 1.5px solid var(--green-100);
+  grid-column: 1 / -1;
+}
+
+.dose-block-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 8px;
+}
+.dose-block.min .dose-block-label    { color: var(--blue-500); }
+.dose-block.max .dose-block-label    { color: var(--purple-500); }
+.dose-block.single .dose-block-label { color: var(--green-700); }
+
+/* Número principal de dosis (DM Mono grande) */
+.dose-block-mg {
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: -0.5px;
+  font-family: 'DM Mono', monospace;
+}
+.dose-block.min .dose-block-mg    { color: var(--blue-700); }
+.dose-block.max .dose-block-mg    { color: var(--purple-700); }
+.dose-block.single .dose-block-mg { color: var(--green-900); }
+
+.dose-block-unit { font-size: 12px; margin-top: 4px; }
+.dose-block.min .dose-block-unit    { color: var(--blue-500); }
+.dose-block.max .dose-block-unit    { color: var(--purple-500); }
+.dose-block.single .dose-block-unit { color: var(--green-700); }
+
+/* ── Alertas clínicas ──
+   ok (verde), info (azul), warning (ámbar), danger (rojo) */
+.alert {
+  border-radius: var(--radius-md);
+  padding: 11px 14px;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.alert.ok      { background: #eaf3de; border: 1px solid #c0dd97; }
+.alert.warning { background: var(--amber-50); border: 1px solid var(--amber-100); }
+.alert.danger  { background: var(--red-50);   border: 1px solid var(--red-100); }
+.alert.info    { background: var(--blue-50);  border: 1px solid var(--blue-100); }
+
+/* Ícono circular con símbolo (✓ ▲ ! i) */
+.alert-icon {
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.alert.ok .alert-icon      { background: #639922;           color: #eaf3de; }
+.alert.warning .alert-icon { background: var(--amber-300);  color: var(--amber-700); }
+.alert.danger .alert-icon  { background: #e24b4a;           color: var(--red-50); }
+.alert.info .alert-icon    { background: var(--blue-500);   color: var(--blue-50); }
+
+.alert-text { font-size: 13px; }
+.alert.ok .alert-text      { color: #3b6d11; }
+.alert.warning .alert-text { color: var(--amber-700); }
+.alert.danger .alert-text  { color: var(--red-700); }
+.alert.info .alert-text    { color: var(--blue-700); }
+
+/* Bloque de frecuencia de administración */
+.freq-block {
+  background: var(--gray-50);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  margin-bottom: 16px;
+  border: 1px solid var(--gray-100);
+}
+.freq-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--gray-500);
+  margin-bottom: 5px;
+}
+.freq-value { font-size: 15px; font-weight: 500; color: var(--gray-900); }
+
+/* Pasos del cálculo (regla de 3 explícita) */
+.steps-section {
+  border-top: 1.5px solid var(--gray-100);
+  padding-top: 16px;
+}
+.steps-title {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--gray-400, #aaa);
+  margin-bottom: 10px;
+}
+.step-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--gray-100);
+  gap: 12px;
+}
+.step-row:last-child { border-bottom: none; }
+.step-label {
+  font-size: 12px;
+  color: var(--gray-500);
+  flex: 1;
+  font-family: 'DM Mono', monospace;
+}
+.step-val {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--gray-900);
+  white-space: nowrap;
+  font-family: 'DM Mono', monospace;
+}
+
+
+/* ============================================================
+   14. TAGS DE FORMATO FARMACÉUTICO
+   Etiquetas pill con color semántico por tipo de presentación
+============================================================ */
+.fmt-tag {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 20px;     /* pill completo */
+  margin-top: 6px;
+  font-family: 'DM Mono', monospace;
+}
+
+.tag-jarabe      { background: var(--blue-50);   color: var(--blue-700); }
+.tag-suspension  { background: var(--purple-50);  color: var(--purple-500); }
+.tag-comprimido  { background: var(--purple-50);  color: var(--purple-700); }
+.tag-dispersable { background: var(--blue-50);    color: var(--blue-500); }
+.tag-capsula     { background: var(--green-50);   color: var(--green-800); }
+.tag-masticable  { background: #faeeda;            color: #7a3d00; }
+.tag-gotas       { background: var(--amber-50);   color: var(--amber-700); }
+.tag-supositorio { background: #faece7;            color: #7a2e12; }
+.tag-solucion    { background: var(--green-50);   color: var(--green-900); }
+.tag-ampolla     { background: var(--red-50);     color: var(--red-700); }
+.tag-ui          { background: var(--amber-50);   color: var(--amber-500); }
+
+
+/* ============================================================
+   15. PANEL DE REFERENCIA — Fichas expandibles de medicamentos
+============================================================ */
+
+/* Buscador del panel de referencia */
+.ref-search-bar { margin-bottom: 20px; position: relative; }
+.ref-search {
+  width: 100%;
+  padding: 12px 16px 12px 44px;
+  border: 1.5px solid var(--gray-100);
+  border-radius: var(--radius-lg);
+  font-size: 14px;
+  font-family: 'DM Sans', sans-serif;
+  background: var(--white);
+  color: var(--gray-900);
+  outline: none;
+  transition: all 0.15s;
+}
+.ref-search:focus {
+  border-color: var(--green-600);
+  box-shadow: 0 0 0 3px rgba(26,138,110,0.1);
+}
+.ref-search-icon {
+  position: absolute;
+  left: 15px; top: 50%;
+  transform: translateY(-50%);
+  color: var(--gray-300);
+}
+
+/* Card expandible de cada medicamento */
+.med-ref-card {
+  background: var(--white);
+  border-radius: var(--radius-lg);
+  border: 1.5px solid var(--gray-100);
+  overflow: hidden;
+  margin-bottom: 12px;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.15s;
+}
+.med-ref-card:hover {
+  border-color: var(--green-200);
+  box-shadow: var(--shadow-md);
+}
+
+/* Header clickeable de la ficha */
+.med-ref-header {
+  padding: 16px 20px;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  user-select: none;
+}
+.med-ref-header-left { display: flex; align-items: center; gap: 12px; }
+
+/* Número de orden */
+.med-ref-num {
+  width: 30px; height: 30px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  font-family: 'DM Mono', monospace;
+  flex-shrink: 0;
+}
+
+.med-ref-name { font-size: 15px; font-weight: 600; color: var(--gray-900); }
+.med-ref-mech { font-size: 12px; color: var(--gray-500); margin-top: 2px; }
+.med-ref-arrow {
+  color: var(--gray-300);
+  transition: transform 0.2s;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+.med-ref-card.open .med-ref-arrow { transform: rotate(180deg); }
+
+/* Cuerpo expandido de la ficha (oculto por defecto) */
+.med-ref-body {
+  display: none;
+  padding: 0 20px 20px;
+  border-top: 1px solid var(--gray-100);
+}
+.med-ref-card.open .med-ref-body { display: block; }
+
+/* Título de sección dentro de la ficha */
+.ref-section-title {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--gray-400, #aaa);
+  margin: 16px 0 8px;
+}
+
+/* Tabla de dosis y formatos */
+.ref-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.ref-table th {
+  text-align: left;
+  padding: 6px 10px;
+  background: var(--gray-50);
+  color: var(--gray-500);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.ref-table td {
+  padding: 7px 10px;
+  border-bottom: 1px solid var(--gray-100);
+  color: var(--gray-700);
+}
+.ref-table tr:last-child td { border-bottom: none; }
+
+/* Alertas compactas dentro de la ficha */
+.ref-alert {
+  border-radius: var(--radius-md);
+  padding: 9px 13px;
+  margin: 6px 0;
+  display: flex;
+  gap: 8px;
+  font-size: 12px;
+}
+.ref-alert.warning { background: var(--amber-50); color: var(--amber-700); border: 1px solid var(--amber-100); }
+.ref-alert.danger  { background: var(--red-50);   color: var(--red-700);   border: 1px solid var(--red-100); }
+.ref-alert.info    { background: var(--blue-50);  color: var(--blue-700);  border: 1px solid var(--blue-100); }
+
+
+/* ============================================================
+   16. PANEL DE FÓRMULAS — Tarjetas educativas con código y ejemplo
+============================================================ */
+.formula-card {
+  background: var(--white);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  margin-bottom: 16px;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid rgba(0,0,0,0.04);
+}
+.formula-card-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--gray-900);
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Bloque de código verde oscuro */
+.formula-code {
+  background: var(--green-900);
+  color: var(--green-200);
+  border-radius: var(--radius-md);
+  padding: 16px 20px;
+  font-family: 'DM Mono', monospace;
+  font-size: 13px;
+  line-height: 2;
+  margin-bottom: 12px;
+}
+.formula-code span { color: var(--green-400); }
+
+/* Ejemplo práctico */
+.formula-example {
+  background: var(--green-50);
+  border: 1px solid var(--green-100);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+}
+.formula-example-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--green-700);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 8px;
+}
+.formula-example-step {
+  font-size: 13px;
+  color: var(--green-800);
+  padding: 3px 0;
+  font-family: 'DM Mono', monospace;
+}
+
+
+/* ============================================================
+   17. UTILIDADES — Empty state, pills, scrollbar
+============================================================ */
+
+/* Estado vacío de grids (antes de selección) */
+.empty-state {
+  text-align: center;
+  padding: 32px 24px;
+  color: var(--gray-400, #aaa);
+}
+.empty-state-icon { font-size: 32px; margin-bottom: 8px; opacity: 0.4; }
+.empty-state-text { font-size: 13px; }
+
+/* Pills de categoría en el panel de referencia */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 20px;
+}
+.pill-green { background: var(--green-50); color: var(--green-700); }
+.pill-blue  { background: var(--blue-50);  color: var(--blue-700); }
+.pill-amber { background: var(--amber-50); color: var(--amber-700); }
+
+/* Scrollbar personalizada */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 3px; }
+.sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); }
+
+
+/* ============================================================
+   18. RESPONSIVE — Adaptación a pantallas ≤ 768px (móvil)
+============================================================ */
+@media (max-width: 768px) {
+  /* Sidebar pasa a flujo normal (no fijo) */
+  .sidebar {
+    width: 100%;
+    position: relative;
+    height: auto;
+  }
+
+  /* Layout pasa a columna */
+  .app-shell { flex-direction: column; }
+  .main { margin-left: 0; }
+
+  /* Reducir paddings en móvil */
+  .content-area { padding: 20px; }
+  .topbar { padding: 12px 20px; }
+
+  /* Formularios y resultados en columna simple */
+  .form-row  { grid-template-columns: 1fr; }
+  .dose-row  { grid-template-columns: 1fr; }
+}
